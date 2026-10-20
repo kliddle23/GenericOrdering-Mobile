@@ -3,18 +3,18 @@
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#18283a;background:#f3f6f9}*{box-sizing:border-box}body{margin:0}header{background:#173a59;color:white;padding:20px 16px}header h1{font-size:21px;margin:0 0 4px}header p{margin:0;opacity:.82;font-size:13px}main{max-width:720px;margin:auto;padding:16px}.notice{background:#fff4d5;border:1px solid #e9d19a;border-radius:10px;padding:12px;font-size:13px;margin-bottom:14px}input,select,button{font:inherit}input,select{width:100%;padding:13px;border:1px solid #bdc9d3;border-radius:10px;background:white}label{font-size:13px;font-weight:650;display:block;margin-bottom:6px}.controls{display:grid;grid-template-columns:1fr 130px;gap:10px;margin-bottom:14px}.card{background:white;border:1px solid #d9e1e8;border-radius:13px;margin:10px 0;padding:15px;box-shadow:0 2px 5px #142e4510}.top{display:flex;align-items:center;justify-content:space-between;gap:10px}.title{font-weight:700}.meta{font-size:13px;color:#526475;margin-top:6px;line-height:1.6}.tag{font-size:12px;border-radius:99px;padding:5px 9px;background:#e5f2ff;color:#194e79}.tag.placed{background:#e6f5e9;color:#28663a}button{cursor:pointer;border:0;background:#1c597e;color:white;border-radius:9px;padding:10px 14px;font-weight:600}button.secondary{background:#edf2f6;color:#23445d}button:disabled{opacity:.5;cursor:not-allowed}.actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.line{border-top:1px solid #e6ebf0;padding:12px 0}.line:first-child{border-top:0}.line strong{display:block}.line small{color:#526475}dialog{border:0;border-radius:14px;width:min(94vw,640px);max-height:85vh;padding:18px;box-shadow:0 10px 40px #0004}dialog::backdrop{background:#10243599}dialog h2{margin-top:0;font-size:20px}.editrow{display:grid;grid-template-columns:1fr 95px;gap:8px;margin:12px 0}.editrow input{padding:9px}.foot{color:#68798a;font-size:12px;text-align:center;padding:20px}.empty{color:#657484;text-align:center;padding:24px}@media(max-width:380px){.controls{grid-template-columns:1fr}.editrow{grid-template-columns:1fr 78px}}
 </style><script defer src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script></head><body><header><h1>Generic Ordering</h1><p>Mobile companion · secure sign-in</p></header><section id="authGate" style="max-width:720px;margin:24px auto;padding:16px"><div class="card"><h2>Microsoft 365 sign-in</h2><p id="authMessage">Checking your sign-in status…</p><button id="signIn" type="button" hidden>Sign in with Microsoft 365</button></div></section><main id="app" hidden><div class="actions" style="justify-content:space-between;align-items:center;margin:0 0 12px"><span id="signedInAs" class="meta"></span><button class="secondary" id="signOut" type="button">Sign out</button></div>
-<section class="card" aria-label="OneDrive connection"><div class="top"><strong>OneDrive connection</strong><span class="tag">Read-only test</span></div><p class="meta" id="driveStatus">Not checked yet. The test only checks whether the GenericOrdering folder exists.</p><button type="button" id="checkDrive">Check OneDrive folder</button></section><div class="notice"><strong>Demo only.</strong> All orders below are fictional. Microsoft 365 sign-in is active, but OneDrive is not connected yet. Edits are not saved or sent anywhere.</div>
+<section class="card" aria-label="OneDrive connection"><div class="top"><strong>OneDrive connection</strong><span class="tag">Read-only test</span></div><p class="meta" id="driveStatus">Not checked yet. The test only checks whether the GenericOrdering folder exists.</p><button type="button" id="checkDrive">Check OneDrive folder</button></section><div class="notice"><strong>Demo only.</strong> All orders below are fictional. Microsoft 365 sign-in works. The orders below are fictional until you explicitly load a private OneDrive snapshot. Editing is disabled.</div>
 <div class="controls"><div><label for="search">Find an item or order</label><input id="search" type="search" placeholder="Product code, description, supplier, PO…" autocomplete="off"></div><div><label for="status">Status</label><select id="status"><option value="all">All</option><option value="Active">Active</option><option value="Placed">Placed</option></select></div></div>
-<div id="count" class="meta" aria-live="polite"></div><div id="results"></div><div class="foot">Generic Ordering Mobile · demo v0.1 · Windows app unchanged</div></main>
+<section class="card"><div class="top"><strong>Order data source</strong><span id="dataSource" class="tag">Demo data</span></div><p id="snapshotStatus" class="meta">Using fictional demonstration orders. No real data loaded.</p><div class="actions"><button type="button" id="loadSnapshot">Load OneDrive snapshot</button><button type="button" class="secondary" id="useDemo">Use demo data</button></div></section><div id="count" class="meta" aria-live="polite"></div><div id="results"></div><div class="foot">Generic Ordering Mobile · demo v0.1 · Windows app unchanged</div></main>
 <dialog id="details"><div class="top"><h2 id="dialogTitle"></h2><button class="secondary" id="close">Close</button></div><div id="dialogBody"></div></dialog>
 <script>
 'use strict';
-const orders=[
+const demoOrders=[
 {id:1,supplier:'Example Safety Supplies',po:'AT12345',status:'Placed',date:'14/10/2026',lines:[{code:'GLV-100',description:'Nitrile gloves, blue, medium',qty:'12',cost:'4.50'},{code:'VEST-20',description:'Hi-vis waistcoat, yellow, large',qty:'8',cost:'3.25'}]},
 {id:2,supplier:'Demo Workwear Ltd',po:'',status:'Active',date:'18/10/2026',lines:[{code:'BOOT-45',description:'Safety boots, size 9',qty:'2',cost:'34.00'},{code:'GLV-100',description:'Nitrile gloves, blue, medium',qty:'6',cost:'4.50'}]},
 {id:3,supplier:'Example Signage Co',po:'AT12346',status:'Placed',date:'19/10/2026',lines:[{code:'SIGN-01',description:'Warning sign — eye protection required',qty:'5',cost:'7.80'}]}
 ];
-const $=id=>document.getElementById(id);const escapeHTML=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let orders=demoOrders;const $=id=>document.getElementById(id);const escapeHTML=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function render(){const q=$('search').value.trim().toLowerCase(),s=$('status').value;const matches=orders.filter(o=>(s==='all'||o.status===s)&&[o.supplier,o.po,o.status,...o.lines.flatMap(l=>[l.code,l.description])].some(v=>String(v).toLowerCase().includes(q)));$('count').textContent=matches.length+' matching order'+(matches.length===1?'':'s');$('results').innerHTML=matches.length?matches.map(o=>'<article class="card"><div class="top"><span class="title">'+escapeHTML(o.supplier)+'</span><span class="tag '+(o.status==='Placed'?'placed':'')+'">'+o.status+'</span></div><div class="meta">'+(o.po?'PO '+escapeHTML(o.po)+' · ':'No PO yet · ')+escapeHTML(o.date)+' · '+o.lines.length+' lines</div>'+o.lines.filter(l=>!q||[o.supplier,o.po,o.status,l.code,l.description].some(v=>String(v).toLowerCase().includes(q))).map(l=>'<div class="meta">• '+escapeHTML(l.code)+' — '+escapeHTML(l.description)+' (Qty '+escapeHTML(l.qty)+')</div>').join('')+'<div class="actions"><button data-id="'+o.id+'">View order</button></div></article>').join(''):'<div class="empty">No matching orders found.</div>'}
 function view(id){const o=orders.find(x=>x.id===id);if(!o)return;$('dialogTitle').textContent=o.po||'Active order #'+o.id;$('dialogBody').innerHTML='<p class="meta">'+escapeHTML(o.supplier)+' · '+escapeHTML(o.status)+' · '+escapeHTML(o.date)+'</p>'+o.lines.map(l=>'<div class="line"><strong>'+escapeHTML(l.code)+' — '+escapeHTML(l.description)+'</strong><small>Quantity: '+escapeHTML(l.qty)+' · Unit cost: £'+escapeHTML(l.cost)+'</small></div>').join('')+'<div class="notice">Editing will be enabled after secure OneDrive synchronisation and conflict checks are implemented.</div><button disabled>Edit order (coming later)</button>';$('details').showModal()}
 $('search').addEventListener('input',render);$('status').addEventListener('change',render);$('results').addEventListener('click',e=>{const b=e.target.closest('button[data-id]');if(b)view(Number(b.dataset.id))});$('close').addEventListener('click',()=>$('details').close());
@@ -67,6 +67,32 @@ document.getElementById('checkDrive').addEventListener('click',async()=>{
   if(!folder.folder)throw new Error('The location exists but is not a folder.');
   status.textContent='Connected: Orders / AutoOrders / '+folder.name+'. Folder located successfully. No database files were downloaded or changed.';
  }catch(e){status.textContent='Connection test failed: '+(e.message||String(e))}
+ finally{button.disabled=false}
+});
+document.getElementById('useDemo').addEventListener('click',()=>{orders=demoOrders;document.getElementById('dataSource').textContent='Demo data';document.getElementById('snapshotStatus').textContent='Using fictional demonstration orders. No real data loaded.';render()});
+document.getElementById('loadSnapshot').addEventListener('click',async()=>{
+ const button=document.getElementById('loadSnapshot'),status=document.getElementById('snapshotStatus');
+ button.disabled=true;status.textContent='Loading private snapshot from OneDrive…';
+ try{
+  const account=authClient?.getActiveAccount();
+  if(!account)throw new Error('Please sign in again.');
+  let token;
+  try{token=await authClient.acquireTokenSilent({account,scopes:['Files.ReadWrite']})}
+  catch(e){if(e instanceof msal.InteractionRequiredAuthError){await authClient.acquireTokenRedirect({account,scopes:['Files.ReadWrite']});return}throw e}
+  const path='Orders/AutoOrders/GenericOrdering/mobile_orders_snapshot.json';
+  const endpoint='https://graph.microsoft.com/v1.0/me/drive/root:/'+path.split('/').map(encodeURIComponent).join('/')+':/content';
+  const response=await fetch(endpoint,{headers:{Authorization:'Bearer '+token.accessToken},cache:'no-store',redirect:'follow'});
+  if(response.status===404)throw new Error('No snapshot found yet. Run the Windows exporter first.');
+  if(!response.ok)throw new Error('Microsoft Graph returned HTTP '+response.status);
+  const payload=await response.json();
+  if(payload.schema_version!==1||!Array.isArray(payload.orders))throw new Error('Unsupported snapshot format.');
+  if(!payload.orders.every(o=>o&&typeof o==='object'&&Array.isArray(o.lines)))throw new Error('Invalid order data in snapshot.');
+  orders=payload.orders;
+  document.getElementById('dataSource').textContent='OneDrive snapshot';
+  const generated=payload.generated_at?new Date(payload.generated_at).toLocaleString():'unknown';
+  status.textContent='Loaded '+orders.length+' orders. Exported: '+generated+'. Read-only; changes may be newer on Windows.';
+  render();
+ }catch(e){status.textContent='Snapshot not loaded: '+(e.message||String(e))+' Demo data remains available.'}
  finally{button.disabled=false}
 });
 window.addEventListener('load',startAuth);
