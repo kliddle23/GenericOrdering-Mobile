@@ -26,10 +26,41 @@ function view(id){
  detail('Colour',l.colour)+detail('Size / Pack',l.size)+detail('Quantity',l.qty)+
  detail('Unit cost',l.cost===null||l.cost===undefined||l.cost===''?'':'£'+l.cost)+
  detail('Customer / Job',l.customer)+detail('Notes',l.notes)+'</div>').join('')+
- '<div class="notice">Read-only snapshot. Editing will be enabled only after a separate conflict-safe Windows import mechanism is tested.</div><button disabled>Edit order (coming later)</button>';
+ (orders===demoOrders
+ ? '<div class="notice">Demo editor only. Changes remain in this browser session and are not sent to OneDrive or Windows.</div><button type="button" id="editDemoOrder">Edit fictional order</button>'
+ : '<div class="notice">Real orders remain read-only. Mobile editing is not enabled for production data.</div><button disabled>Edit live order (not enabled)</button>');
  $('details').showModal()
 }
 $('search').addEventListener('input',render);$('status').addEventListener('change',render);$('results').addEventListener('click',e=>{const b=e.target.closest('button[data-id]');if(b)view(Number(b.dataset.id))});$('close').addEventListener('click',()=>$('details').close());
+$('dialogBody').addEventListener('click',e=>{
+ if(e.target.id!=='editDemoOrder')return;
+ const title=$('dialogTitle').textContent;
+ const o=demoOrders.find(x=>(x.po||'Active order #'+x.id)===title);
+ if(!o)return;
+ const fields=['description','colour','size','qty','notes'];
+ const editor=o.lines.map((l,i)=>'<fieldset class="card" style="margin:10px 0"><legend>Line '+(i+1)+' · '+escapeHTML(l.code||'')+'</legend>'+fields.map(field=>'<label for="demo_'+i+'_'+field+'">'+field[0].toUpperCase()+field.slice(1)+'</label><input id="demo_'+i+'_'+field+'" data-line="'+i+'" data-field="'+field+'" maxlength="500" value="'+escapeHTML(l[field]??'')+'">').join('')+'</fieldset>').join('');
+ $('dialogBody').innerHTML='<p class="notice">Fictional orders only. Save generates a preview request and updates the on-screen demo. No data leaves your browser.</p>'+editor+'<div class="actions"><button type="button" id="saveDemoEdit">Save demo changes</button><button type="button" class="secondary" id="cancelDemoEdit">Cancel</button></div><pre id="requestPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px"></pre>';
+});
+$('dialogBody').addEventListener('click',e=>{
+ if(e.target.id==='cancelDemoEdit'){$('details').close();return}
+ if(e.target.id!=='saveDemoEdit')return;
+ const title=$('dialogTitle').textContent;
+ const o=demoOrders.find(x=>(x.po||'Active order #'+x.id)===title);
+ if(!o)return;
+ const changes=[];
+ for(const input of $('dialogBody').querySelectorAll('input[data-line]')){
+  const line=o.lines[Number(input.dataset.line)],field=input.dataset.field;
+  const value=input.value.trim();
+  if(field==='qty'&&(!/^(?:0|[1-9][0-9]{0,7})(?:\\.[0-9]{1,3})?$/.test(value)||Number(value)<=0)){alert('Quantity must be a positive number.');input.focus();return}
+  if(String(line[field]??'')!==value)changes.push({line_id:line.id??Number(input.dataset.line)+1,field,expected:String(line[field]??''),value});
+ }
+ const preview={schema_version:1,request_type:'update_order_lines',request_id:'DEMO-NOT-SUBMITTED',order_id:o.id,expected_updated_at:o.updated_at??null,changes};
+ for(const change of changes){const line=o.lines.find((l,i)=>(l.id??i+1)===change.line_id);if(line)line[change.field]=change.value}
+ $('dialogBody').innerHTML='<div class="notice"><strong>Demo saved locally.</strong> Nothing was sent to OneDrive or Windows. This request preview is illustrative and cannot be submitted.</div><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px">'+escapeHTML(JSON.stringify(preview,null,2))+'</pre><button type="button" id="finishDemoEdit">Done</button>';
+ render();
+});
+$('dialogBody').addEventListener('click',e=>{if(e.target.id==='finishDemoEdit')$('details').close()});
+
 </script>
 <script>
 'use strict';
