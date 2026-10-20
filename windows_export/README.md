@@ -53,3 +53,28 @@ Snapshots are read-only copies, not live database views. Changes are not visible
 The mobile interface does not store the exported snapshot in GitHub or browser local storage. Browser memory holds it during the session.
 
 **Important:** The export is currently manually triggered, not automatic. The live Windows app remains unchanged.
+
+
+## Optional automatic refresh helper (test phase)
+
+Keep both Python files in the **same local folder**:
+- `export_mobile_snapshot.py`
+- `watch_mobile_snapshot.py`
+
+First close Generic Ordering and let OneDrive finish syncing. For an initial one-time run:
+
+```powershell
+py watch_mobile_snapshot.py --once
+```
+
+To watch for changes while the PC is running:
+
+```powershell
+py watch_mobile_snapshot.py
+```
+
+The watcher checks the SQLite file every 15 seconds and waits for it to settle for 10 seconds after a change before exporting. A failed export is retried. It uses a read-only SQLite connection and writes only `mobile_orders_snapshot.json`.
+
+**Limitations:** This is a test-stage standalone process, not a Windows service and not yet a save-hook in Generic Ordering. It stops when the command window closes, the PC sleeps, or Windows shuts down. OneDrive can introduce additional sync delays. The watcher detects database file modification times, not individual save events, and a concurrent read could be delayed by a writer. Verify results before relying on it. Never run it against a production database while another computer has unsynced edits.
+
+The mobile snapshot is a private OneDrive file; **do not upload it to GitHub**. It contains real order data. Mobile editing remains disabled.
