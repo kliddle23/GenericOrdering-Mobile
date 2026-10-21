@@ -28,7 +28,7 @@ function groupDisplayLines(lines){
  return result;
 }
 function memoText(lines){
- return lines.map(l=>String(l.description||l.notes||'').trim()).join('\\n');
+ return lines.map(l=>String(l.description||l.notes||'').trim()).join('\n');
 }
 function memoBlock(lines,expanded=false){
  return '<div class="'+(expanded?'line':'meta')+'" style="padding:10px 12px;background:#f1f5f9;border-left:3px solid #8da4b8;border-radius:5px;margin:6px 0"><strong>Memo</strong><div style="white-space:pre-wrap;overflow-wrap:anywhere;margin-top:4px">'+escapeHTML(memoText(lines))+'</div></div>';
