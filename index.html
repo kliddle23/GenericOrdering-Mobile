@@ -28,7 +28,7 @@ function groupDisplayLines(lines){
  return result;
 }
 function memoText(lines){
- return lines.map(l=>String(l.description||l.notes||'').trim()).join('\n');
+ return lines.map(l=>String(l.description||l.notes||'').trim()).join('\n').replace(/^\s*\n+|\n+\s*$/g,'');
 }
 function memoBlock(lines,expanded=false){
  return '<div class="'+(expanded?'line':'meta')+'" style="padding:10px 12px;background:#f1f5f9;border-left:3px solid #8da4b8;border-radius:5px;margin:6px 0"><strong>Memo</strong><div style="white-space:pre-wrap;overflow-wrap:anywhere;margin-top:4px">'+escapeHTML(memoText(lines))+'</div></div>';
@@ -52,9 +52,9 @@ function view(id){
  $('dialogBody').innerHTML='<div class="meta">'+escapeHTML(o.supplier)+' · '+escapeHTML(o.status)+'</div>'+
  detail('Order date',o.date)+detail('Placed date',o.placed_date)+detail('PO',o.po)+
  groupDisplayLines(o.lines).map(block=>block.memo?memoBlock(block.lines,true):'<div class="line"><strong>'+escapeHTML(block.line.code||'No product code')+' — '+escapeHTML(block.line.description||'')+'</strong>'+
- detail('Colour',l.colour)+detail('Size / Pack',l.size)+detail('Quantity',l.qty)+
+ detail('Colour',block.line.colour)+detail('Size / Pack',block.line.size)+detail('Quantity',block.line.qty)+
  detail('Unit cost',block.line.cost===null||block.line.cost===undefined||block.line.cost===''?'':'£'+block.line.cost)+
- detail('Customer / Job',l.customer)+detail('Notes',l.notes)+'</div>').join('')+
+ detail('Customer / Job',block.line.customer)+detail('Notes',block.line.notes)+'</div>').join('')+
  (orders===demoOrders
  ? '<div class="notice">Demo editor only. Changes remain in this browser session and are not sent to OneDrive or Windows.</div><button type="button" id="editDemoOrder">Edit fictional order</button>'
  : '<div class="notice">Real orders remain read-only. Mobile editing is not enabled for production data.</div><button disabled>Edit live order (not enabled)</button>');
